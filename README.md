@@ -1,2 +1,5 @@
-# lab-jenkins
-Laboratorio de Jenkins para aulas de CI/CD
+# Laboratório para a Aula de Integração e Implantação Contínuas
+
+Este laboratório é composto pelas ferramentas:
+    Jenkins
+    Sonarqube
