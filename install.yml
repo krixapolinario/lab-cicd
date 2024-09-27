@@ -1,6 +1,6 @@
 ---
 - name: Deploy CI/CD Stack
-  hosts: localhost
+  hosts: all
   become: true
 
   vars:
@@ -10,60 +10,33 @@
     - vars/vars.yml
 
   tasks:
-  - name: Starting 
+  - name: Configure Server 
     block:
-      - name: Check if Docker Swarm Service is Running
+      - ansible.builtin.include_tasks: "config-server-{{ ansible_distribution | lower }}.yml"
+
+      - name: Check if Docker Service is Up and Running
         ansible.builtin.service_facts:
-          name: docker.service
-          state: running
-        register: docker_service
-        failed_when: docker_service == 'down'
 
-        # SonarQube uses an embedded Elasticsearch, make sure that your Docker host configuration complies 
-        # with the Elasticsearch production mode [1] requirements and File Descriptors configuration [2].
-        # [1] https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html#docker-cli-run-prod-mode
-        # [2] https://www.elastic.co/guide/en/elasticsearch/reference/current/file-descriptors.html
-        # sysctl -w vm.max_map_count=524288
-        # sysctl -w fs.file-max=131072
-        # ulimit -n 131072
-        # ulimit -u 8192
-      - name: Adjust Elasticsearch Requirements in /etc/sysctl.conf
-        ansible.posix.sysctl:
-          name: "{{ item.name }}"
-          value: "{{ item.value }}"
-          state: present
-        loop:
-          - { name: 'vm.max_map_count', value: '524288' }
-          - { name: 'fs.file-max', value: '131072' }
-      
-      - name: Elasticsearch Requirements in /etc/security/limits.conf
-        community.general.pam_limits:
-            domain: "*"
-            limit_type: "{{ item.limit_type }}"
-            limit_item: "{{ item.limit_item }}"
-            value: "{{ item.value }}"
-        loop:
-          - { limit_type: '-', limit_item: 'nofile', value: '65536' }
-          - { limit_type: '-', limit_item: 'nproc', value: '8192' }
-          - { limit_type: 'soft', limit_item: 'memlock', value: unlimited }
-          - { limit_type: 'hard', limit_item: 'memlock', value: unlimited }
+      - name: Starting Deploy
+        block:
+          - name: Generate Docker Compose to Deploy Jenkins
+            ansible.builtin.template:
+              src: 'docker-compose.j2'
+              dest: 'docker-compose.yml'
 
-      - name: Generate Docker Compose to Deploy Jenkins
-        ansible.builtin.template:
-          src: 'docker-compose.j2'
-          dest: 'docker-compose.yml'
+          - name: Deploy Jenkins on Docker Swarm
+            community.docker.docker_stack:
+              state: absent
+              name: "{{ project_name }}"
+              compose:
+                - docker-compose.yml
 
-      - name: Deploy Jenkins on Docker Swarm
-        community.docker.docker_stack:
-          state: present
-          name: "{{ project_name }}"
-          compose:
-            - /tmp/docker-compose.yml
+          - name: Remove Temporary Files
+            ansible.builtin.file:
+              state: absent
+              path: "{{ item }}"
+            loop:
+              - 'docker-compose.yml'
 
-      - name: Remove Temporary Files
-        ansible.builtin.file:
-          state: absent
-          path: "{{ item }}"
-        loop:
-          - "/tmp/docker-compose.yml"
+        when: ansible_facts.services['docker.service'].state == 'running'
     when: ansible_facts['system'] == 'Linux' or ansible_facts['system'] == 'Darwin'

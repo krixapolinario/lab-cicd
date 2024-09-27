@@ -1,11 +1,9 @@
-name: {{ project_name }}
-
 services:
   jenkins:
 {% if ansible_facts['machine'] == 'arm64' %}
     platform: linux/arm64
 {% endif %}
-    image: {{ jenkins_image }}:{{ jenkins_image }}
+    image: {{ jenkins_image }}:{{ jenkins_version }}
     user: root
     privileged: true
     ports:
@@ -22,10 +20,10 @@ services:
         target: /var/jenkins_home/
 {% if ansible_facts['system'] == 'Linux' %}
       - /usr/bin/docker:/usr/bin/docker
-      - /var/run/docker.sock:/var/run/docker.sock
-{% endif %}
+      - /var/run/docker.sock:/var/run/docker.sock{% endif %}
+    
     networks:
-      cicd_net
+      - cicd_net
 
   sonar:
 {% if ansible_facts['machine'] == 'arm64' %}

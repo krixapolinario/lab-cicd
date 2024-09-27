@@ -229,3 +229,7 @@ override.tf.json
 terraform.rc
 
 .terraform.lock.hcl
+
+inventory.yml
+config-server.yml
+path
