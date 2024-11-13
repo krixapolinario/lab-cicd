@@ -1,5 +1,5 @@
 ---
-- name: Configure Server and Application
+- name: Configure CI 
   hosts: all
   become: true
   gather_facts: false
@@ -36,7 +36,7 @@
 
         - name: Deploy Jenkins on Docker Swarm
           community.docker.docker_stack:
-            state: present
+            state: absent
             name: "{{ project_name }}"
             compose:
               - /tmp/docker-compose.yml
