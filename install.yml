@@ -36,7 +36,7 @@
 
         - name: Deploy Jenkins on Docker Swarm
           community.docker.docker_stack:
-            state: absent
+            state: present
             name: "{{ project_name }}"
             compose:
               - /tmp/docker-compose.yml
