@@ -1,42 +1,48 @@
 ---
-- name: Deploy CI/CD Stack
+- name: Configure Server and Application
   hosts: all
   become: true
+  gather_facts: false
 
   vars:
-    project_name: 'fast_2024_t3'
-
+    project_name: 'fast2024t3'
+  
   vars_files:
     - vars/vars.yml
 
   tasks:
-  - name: Configure Server 
-    block:
-      - ansible.builtin.include_tasks: "config-server-{{ ansible_distribution | lower }}.yml"
+    - name: Wait for server to boot
+      ansible.builtin.wait_for_connection:
+        timeout: 120
 
-      - name: Check if Docker Service is Up and Running
-        ansible.builtin.service_facts:
+    - name: Gather facts
+      ansible.builtin.setup:
 
-      - name: Starting Deploy
-        block:
-          - name: Generate Docker Compose to Deploy Jenkins
-            ansible.builtin.template:
-              src: 'docker-compose.j2'
-              dest: 'docker-compose.yml'
+    - name: Check if Docker Service is Up and Running
+      ansible.builtin.service_facts:
+    
+    - name: Print service facts
+      ansible.builtin.debug:
+        var: ansible_facts.services['docker.service']
 
-          - name: Deploy Jenkins on Docker Swarm
-            community.docker.docker_stack:
-              state: absent
-              name: "{{ project_name }}"
-              compose:
-                - docker-compose.yml
+    - name: Starting Deploy
+      block:
+        - name: Generate Docker Compose to Deploy Jenkins
+          ansible.builtin.template:
+            src: 'docker-compose.j2'
+            dest: '/tmp/docker-compose.yml'
 
-          - name: Remove Temporary Files
-            ansible.builtin.file:
-              state: absent
-              path: "{{ item }}"
-            loop:
-              - 'docker-compose.yml'
+        - name: Deploy Jenkins on Docker Swarm
+          community.docker.docker_stack:
+            state: present
+            name: "{{ project_name }}"
+            compose:
+              - /tmp/docker-compose.yml
 
-        when: ansible_facts.services['docker.service'].state == 'running'
-    when: ansible_facts['system'] == 'Linux' or ansible_facts['system'] == 'Darwin'
+        - name: Remove Temporary Files
+          ansible.builtin.file:
+            state: absent
+            path: "{{ item }}"
+          loop:
+            - '/tmp/docker-compose.yml'
+      when: ansible_facts.services['docker.service'].state == 'running'

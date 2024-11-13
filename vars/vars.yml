@@ -1,5 +1,5 @@
 jenkins_image: 'jenkins/jenkins'
-jenkins_version: '2.424-jdk21'
+jenkins_version: '2.485'
 postgres_image: postgres
 postgres_version: '13.16'
 sonarqube_image: 'sonarqube'

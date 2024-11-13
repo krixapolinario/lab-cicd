@@ -231,5 +231,6 @@ terraform.rc
 .terraform.lock.hcl
 
 inventory.yml
+inventory.yaml
 config-server.yml
 path
