@@ -18,7 +18,7 @@ jobs:
         uses: ansible/ansible-lint@main
         with:
           working_directory: .
-  
+
   sonarcloud:
     name: SonarQube Cloud
     runs-on: ubuntu-latest
